@@ -4,12 +4,22 @@ import { OrbitControls, Environment, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import type { GeometryType } from '@twinforge/shared';
 
+// ── Shared types ──────────────────────────────────────────────────────────────
+
+interface LiveParams {
+  heartRate?: number;
+  loadPercent?: number;
+}
+
 // ── Human Figures ─────────────────────────────────────────────────────────────
 
-function HumanDefaultFigure({ color = '#6366F1' }: { color?: string }) {
+function HumanDefaultFigure({ color = '#6366F1', liveParams }: { color?: string; liveParams?: LiveParams }) {
   const groupRef = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
-    if (groupRef.current) groupRef.current.rotation.y += delta * 0.3;
+    if (groupRef.current) {
+      const speed = Math.max(0.1, (liveParams?.heartRate ?? 70) / 233);
+      groupRef.current.rotation.y += delta * speed;
+    }
   });
   return (
     <group ref={groupRef}>
@@ -57,19 +67,20 @@ function HumanDefaultFigure({ color = '#6366F1' }: { color?: string }) {
   );
 }
 
-function HumanCardiacFigure() {
+function HumanCardiacFigure({ liveParams }: { liveParams?: LiveParams }) {
   const groupRef = useRef<THREE.Group>(null);
   const heartRef = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     if (groupRef.current) groupRef.current.rotation.y += 0.004;
     if (heartRef.current) {
-      const pulse = 1 + Math.sin(state.clock.elapsedTime * 4) * 0.08;
+      const freq = liveParams?.heartRate ? Math.max(0.5, liveParams.heartRate / 30) : 4;
+      const pulse = 1 + Math.sin(state.clock.elapsedTime * freq) * 0.08;
       heartRef.current.scale.setScalar(pulse);
     }
   });
   return (
     <group ref={groupRef}>
-      <HumanDefaultFigure color="#EF4444" />
+      <HumanDefaultFigure color="#EF4444" liveParams={liveParams} />
       {/* Heart indicator */}
       <mesh ref={heartRef} position={[0, 0.65, 0.34]}>
         <sphereGeometry args={[0.15, 12, 12]} />
@@ -118,10 +129,13 @@ function HumanSurgicalFigure() {
 
 // ── Industrial Machines ───────────────────────────────────────────────────────
 
-function TurbineFigure() {
+function TurbineFigure({ liveParams }: { liveParams?: LiveParams }) {
   const fanRef = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
-    if (fanRef.current) fanRef.current.rotation.z += delta * 2;
+    if (fanRef.current) {
+      const speed = liveParams?.loadPercent !== undefined ? Math.max(0.1, liveParams.loadPercent / 25) : 2;
+      fanRef.current.rotation.z += delta * speed;
+    }
   });
   return (
     <group>
@@ -332,10 +346,13 @@ function HydraulicPressFigure() {
   );
 }
 
-function PumpFigure() {
+function PumpFigure({ liveParams }: { liveParams?: LiveParams }) {
   const impellerRef = useRef<THREE.Mesh>(null);
   useFrame((_, delta) => {
-    if (impellerRef.current) impellerRef.current.rotation.y += delta * 4;
+    if (impellerRef.current) {
+      const speed = liveParams?.loadPercent !== undefined ? Math.max(0.2, liveParams.loadPercent / 25) : 4;
+      impellerRef.current.rotation.y += delta * speed;
+    }
   });
   return (
     <group>
@@ -409,19 +426,19 @@ function FallbackShape() {
   );
 }
 
-function GeometryForType({ type }: { type: GeometryType }) {
+function GeometryForType({ type, liveParams }: { type: GeometryType; liveParams?: LiveParams }) {
   switch (type) {
-    case 'human-default': return <HumanDefaultFigure />;
-    case 'human-cardiac': return <HumanCardiacFigure />;
+    case 'human-default': return <HumanDefaultFigure liveParams={liveParams} />;
+    case 'human-cardiac': return <HumanCardiacFigure liveParams={liveParams} />;
     case 'human-athletic': return <HumanAthleticFigure />;
     case 'human-child': return <HumanChildFigure />;
     case 'human-surgical': return <HumanSurgicalFigure />;
-    case 'turbine': return <TurbineFigure />;
+    case 'turbine': return <TurbineFigure liveParams={liveParams} />;
     case 'cnc-machine': return <CNCMachineFigure />;
     case 'robot-arm': return <RobotArmFigure />;
     case 'conveyor': return <ConveyorFigure />;
     case 'hydraulic-press': return <HydraulicPressFigure />;
-    case 'pump': return <PumpFigure />;
+    case 'pump': return <PumpFigure liveParams={liveParams} />;
     case 'offshore-pump': return <OffshorePumpFigure />;
     default: return <FallbackShape />;
   }
@@ -433,9 +450,10 @@ interface ModelPreview3DProps {
   geometryType: GeometryType;
   interactive?: boolean;
   height?: string;
+  liveParams?: LiveParams;
 }
 
-export default function ModelPreview3D({ geometryType, interactive = false, height = '180px' }: ModelPreview3DProps) {
+export default function ModelPreview3D({ geometryType, interactive = false, height = '180px', liveParams }: ModelPreview3DProps) {
   return (
     <div style={{ height }} className="w-full rounded-lg overflow-hidden bg-bg-base">
       <Canvas
@@ -450,7 +468,7 @@ export default function ModelPreview3D({ geometryType, interactive = false, heig
         <directionalLight position={[0, 5, 2]} intensity={0.8} />
         <Suspense fallback={null}>
           <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2} enabled={!interactive}>
-            <GeometryForType type={geometryType} />
+            <GeometryForType type={geometryType} liveParams={liveParams} />
           </Float>
           <Environment preset="city" />
         </Suspense>

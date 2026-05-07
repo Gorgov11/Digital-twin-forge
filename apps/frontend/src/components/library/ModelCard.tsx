@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import type { TwinModel } from '@twinforge/shared';
 import ModelPreview3D from './ModelPreview3D';
 import { useAppStore } from '@/store/appStore';
@@ -13,10 +14,12 @@ const COMPLEXITY_COLOR: Record<string, string> = {
 interface ModelCardProps {
   model: TwinModel;
   isSelected?: boolean;
+  isCompared?: boolean;
   onSelect: (model: TwinModel) => void;
+  onToggleCompare?: (model: TwinModel) => void;
 }
 
-export default function ModelCard({ model, isSelected, onSelect }: ModelCardProps) {
+export default function ModelCard({ model, isSelected, isCompared, onSelect, onToggleCompare }: ModelCardProps) {
   const navigate = useNavigate();
   const setSelectedModel = useAppStore((s) => s.setSelectedModel);
 
@@ -26,15 +29,47 @@ export default function ModelCard({ model, isSelected, onSelect }: ModelCardProp
     navigate(`/studio/${model.id}`);
   }
 
+  function handleCompare(e: React.MouseEvent) {
+    e.stopPropagation();
+    onToggleCompare?.(model);
+  }
+
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
       onClick={() => onSelect(model)}
       className={[
-        'group relative bg-bg-surface border rounded-xl overflow-hidden cursor-pointer transition-all duration-200',
-        'hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5',
-        isSelected ? 'border-primary shadow-lg shadow-primary/10' : 'border-border',
+        'group relative bg-bg-surface border rounded-xl overflow-hidden cursor-pointer transition-colors',
+        isCompared
+          ? 'border-accent shadow-lg shadow-accent/10'
+          : isSelected
+          ? 'border-primary shadow-lg shadow-primary/10'
+          : 'border-border hover:border-primary/40 hover:shadow-lg',
       ].join(' ')}
     >
+      {/* Compare toggle */}
+      {onToggleCompare && (
+        <button
+          onClick={handleCompare}
+          title={isCompared ? 'Remove from comparison' : 'Add to comparison'}
+          className={[
+            'absolute top-10 right-2 z-10 w-5 h-5 rounded-full border text-[9px] font-bold transition-all',
+            'flex items-center justify-center',
+            isCompared
+              ? 'bg-accent border-accent text-bg-base'
+              : 'bg-bg-elevated/90 border-border text-txt-muted opacity-0 group-hover:opacity-100',
+          ].join(' ')}
+        >
+          {isCompared ? '✓' : '+'}
+        </button>
+      )}
+
       {/* 3D Preview */}
       <div className="relative">
         <ModelPreview3D geometryType={model.geometryType} height="160px" />
@@ -101,6 +136,6 @@ export default function ModelCard({ model, isSelected, onSelect }: ModelCardProp
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

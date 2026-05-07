@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppStore } from '@/store/appStore';
 import ReportRenderer from '@/components/simulation/ReportRenderer';
+import PageTransition from '@/components/ui/PageTransition';
 
 export default function SimulationReport() {
   const { simulationId } = useParams<{ simulationId: string }>();
@@ -23,17 +24,19 @@ export default function SimulationReport() {
   }
 
   return (
-    <div className="p-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="btn-ghost text-xs mb-6 -ml-1"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-        </svg>
-        Back
-      </button>
-      <ReportRenderer report={report} />
-    </div>
+    <PageTransition>
+      <div className="p-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="btn-ghost text-xs mb-6 -ml-1"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Back
+        </button>
+        <ReportRenderer report={report} />
+      </div>
+    </PageTransition>
   );
 }

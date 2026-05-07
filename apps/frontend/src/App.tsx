@@ -1,14 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import Shell from '@/components/layout/Shell';
 import Library from '@/pages/Library';
 import Studio from '@/pages/Studio';
 import Dashboard from '@/pages/Dashboard';
 import SimulationReport from '@/pages/SimulationReport';
 
-export default function App() {
+function AnimatedRoutes() {
+  const location = useLocation();
   return (
-    <BrowserRouter>
-      <Routes>
+    <AnimatePresence mode="wait" initial={false}>
+      <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Shell />}>
           <Route index element={<Navigate to="/library" replace />} />
           <Route path="library" element={<Library />} />
@@ -18,6 +20,14 @@ export default function App() {
           <Route path="simulation/:simulationId" element={<SimulationReport />} />
         </Route>
       </Routes>
+    </AnimatePresence>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AnimatedRoutes />
     </BrowserRouter>
   );
 }

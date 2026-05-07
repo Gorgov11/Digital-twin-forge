@@ -6,11 +6,14 @@ interface AppState {
   // Twin management
   twins: Twin[];
   activeTwinId: string | null;
+  archivedTwinIds: string[];
   setTwins: (twins: Twin[]) => void;
   addTwin: (twin: Twin) => void;
   updateTwin: (id: string, patch: Partial<Twin>) => void;
   removeTwin: (id: string) => void;
   setActiveTwin: (id: string | null) => void;
+  archiveTwin: (id: string) => void;
+  unarchiveTwin: (id: string) => void;
 
   // Simulation management
   simulations: Simulation[];
@@ -49,6 +52,7 @@ export const useAppStore = create<AppState>()(
       // Twins
       twins: [],
       activeTwinId: null,
+      archivedTwinIds: [],
       setTwins: (twins) => set({ twins }),
       addTwin: (twin) => set((s) => ({ twins: [...s.twins, twin] })),
       updateTwin: (id, patch) =>
@@ -58,9 +62,14 @@ export const useAppStore = create<AppState>()(
       removeTwin: (id) =>
         set((s) => ({
           twins: s.twins.filter((t) => t.id !== id),
+          archivedTwinIds: s.archivedTwinIds.filter((aid) => aid !== id),
           activeTwinId: s.activeTwinId === id ? null : s.activeTwinId,
         })),
       setActiveTwin: (id) => set({ activeTwinId: id }),
+      archiveTwin: (id) =>
+        set((s) => ({ archivedTwinIds: [...s.archivedTwinIds.filter((x) => x !== id), id] })),
+      unarchiveTwin: (id) =>
+        set((s) => ({ archivedTwinIds: s.archivedTwinIds.filter((x) => x !== id) })),
 
       // Simulations
       simulations: [],
@@ -104,6 +113,7 @@ export const useAppStore = create<AppState>()(
       partialize: (s) => ({
         twins: s.twins,
         simulations: s.simulations,
+        archivedTwinIds: s.archivedTwinIds,
       }),
     }
   )

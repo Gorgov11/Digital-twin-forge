@@ -176,7 +176,15 @@ export default function Studio() {
 
         {/* 3D Viewer */}
         <div className="p-3">
-          <ModelPreview3D geometryType={model.geometryType} height="240px" interactive />
+          <ModelPreview3D
+            geometryType={model.geometryType}
+            height="240px"
+            interactive
+            liveParams={{
+              heartRate: humanParams.restingHeartRate,
+              loadPercent: industrialParams.loadCyclePercent,
+            }}
+          />
         </div>
 
         {/* Twin name */}
