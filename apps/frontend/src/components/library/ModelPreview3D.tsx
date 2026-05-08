@@ -3,6 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Environment, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import type { GeometryType } from '@twinforge/shared';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -456,24 +457,32 @@ interface ModelPreview3DProps {
 export default function ModelPreview3D({ geometryType, interactive = false, height = '180px', liveParams }: ModelPreview3DProps) {
   return (
     <div style={{ height }} className="w-full rounded-lg overflow-hidden bg-bg-base">
-      <Canvas
-        camera={{ position: [0, 0.5, 3.5], fov: 40 }}
-        dpr={[1, 1.5]}
-        gl={{ antialias: true, alpha: true }}
+      <ErrorBoundary
+        fallback={
+          <div className="flex items-center justify-center h-full bg-bg-base rounded-lg border border-border">
+            <p className="text-xs text-txt-muted">3D preview unavailable</p>
+          </div>
+        }
       >
-        <color attach="background" args={['#080B0F']} />
-        <ambientLight intensity={0.3} />
-        <pointLight position={[3, 4, 3]} intensity={1.5} color="#6366F1" />
-        <pointLight position={[-3, -2, -3]} intensity={0.6} color="#22D3EE" />
-        <directionalLight position={[0, 5, 2]} intensity={0.8} />
-        <Suspense fallback={null}>
-          <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2} enabled={!interactive}>
-            <GeometryForType type={geometryType} liveParams={liveParams} />
-          </Float>
-          <Environment preset="city" />
-        </Suspense>
-        {interactive && <OrbitControls enablePan={false} minDistance={2} maxDistance={8} />}
-      </Canvas>
+        <Canvas
+          camera={{ position: [0, 0.5, 3.5], fov: 40 }}
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, alpha: true }}
+        >
+          <color attach="background" args={['#080B0F']} />
+          <ambientLight intensity={0.3} />
+          <pointLight position={[3, 4, 3]} intensity={1.5} color="#6366F1" />
+          <pointLight position={[-3, -2, -3]} intensity={0.6} color="#22D3EE" />
+          <directionalLight position={[0, 5, 2]} intensity={0.8} />
+          <Suspense fallback={null}>
+            <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2} enabled={!interactive}>
+              <GeometryForType type={geometryType} liveParams={liveParams} />
+            </Float>
+            <Environment preset="city" />
+          </Suspense>
+          {interactive && <OrbitControls enablePan={false} minDistance={2} maxDistance={8} />}
+        </Canvas>
+      </ErrorBoundary>
     </div>
   );
 }

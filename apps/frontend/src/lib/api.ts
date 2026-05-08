@@ -1,9 +1,10 @@
 import axios from 'axios';
-import type { Twin, Simulation, SimulationReport } from '@twinforge/shared';
+import type { Twin, Simulation, SimulationReport, ScenarioPreset } from '@twinforge/shared';
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3001',
   headers: { 'Content-Type': 'application/json' },
+  timeout: 8000,
 });
 
 // ── Twins ─────────────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ export async function runSimulation(payload: {
   scenarioName: string;
   category: string;
   params: object;
+  scenario: ScenarioPreset;
 }): Promise<{ simulationId: string }> {
   const { data } = await client.post('/api/simulations', payload);
   return data;
@@ -80,3 +82,4 @@ export function streamSimulationProgress(
 
   return () => es.close();
 }
+

@@ -4,6 +4,8 @@ import type { HumanParams, IndustrialParams, ScenarioPreset, SimulationReport } 
 import { getModelById } from '@/lib/models';
 import { computeHealthScore } from '@/lib/healthScore';
 import { useAppStore } from '@/store/appStore';
+import { runSimulation as runSimulationApi, streamSimulationProgress } from '@/lib/api';
+import { useApiStatus } from '@/hooks/useApiStatus';
 import ModelPreview3D from '@/components/library/ModelPreview3D';
 import HumanParamForm, { DEFAULT_HUMAN_PARAMS } from '@/components/studio/HumanParamForm';
 import IndustrialParamForm, { DEFAULT_INDUSTRIAL_PARAMS } from '@/components/studio/IndustrialParamForm';
@@ -43,6 +45,7 @@ export default function Studio() {
   const [report, setReport] = useState<SimulationReport | null>(null);
   const [savedTwinId, setSavedTwinId] = useState<string | null>(existingTwin?.id ?? null);
 
+  const apiStatus = useApiStatus();
   const category = model?.category ?? 'human';
   const params = category === 'human' ? humanParams : industrialParams;
   const healthScore = computeHealthScore(params, category);
@@ -102,6 +105,60 @@ export default function Studio() {
       setSavedTwinId(currentTwinId);
     }
 
+    setRunning(true);
+    setProgress(0);
+    setTab('report');
+
+    // ── Try real backend API first ────────────────────────────────────────────
+    if (apiStatus === 'online') {
+      try {
+        const { simulationId } = await runSimulationApi({
+          twinId: currentTwinId,
+          twinName,
+          scenarioId: selectedScenario.id,
+          scenarioName: selectedScenario.name,
+          category: model.category,
+          params,
+          scenario: selectedScenario,
+        });
+
+        addSimulation({
+          id: simulationId,
+          twinId: currentTwinId,
+          twinName,
+          scenarioId: selectedScenario.id,
+          scenarioName: selectedScenario.name,
+          overallRisk: selectedScenario.estimatedRisk,
+          status: 'running',
+          createdAt: new Date().toISOString(),
+        });
+
+        await new Promise<void>((resolve) => {
+          const cleanup = streamSimulationProgress(
+            simulationId,
+            (pct, msg) => { setProgress(pct); setProgressMsg(msg); },
+            (report) => {
+              setProgress(100);
+              setProgressMsg('Complete');
+              setRunning(false);
+              setReport(report);
+              updateSimulation(simulationId, { status: 'complete', report, overallRisk: report.overallRisk });
+              updateTwin(currentTwinId!, {
+                simulationCount: (twins.find((t) => t.id === currentTwinId)?.simulationCount ?? 0) + 1,
+              });
+              resolve();
+            },
+            (_err) => { cleanup(); resolve(); }
+          );
+        });
+        return;
+      } catch {
+        // Backend unreachable — fall through to mock
+        console.warn('[TwinForge] Backend unavailable, using mock simulation');
+      }
+    }
+
+    // ── Mock fallback ─────────────────────────────────────────────────────────
     const simId = crypto.randomUUID();
     addSimulation({
       id: simId,
@@ -114,12 +171,7 @@ export default function Studio() {
       createdAt: new Date().toISOString(),
     });
 
-    setRunning(true);
-    setProgress(0);
-    setTab('report');
-
-    // Simulate streaming progress
-    const steps = [
+    const steps: [number, string][] = [
       [10, 'Initialising twin state…'],
       [25, 'Loading scenario parameters…'],
       [40, 'Running AI inference engine…'],
@@ -131,11 +183,10 @@ export default function Studio() {
 
     for (const [pct, msg] of steps) {
       await new Promise((r) => setTimeout(r, 400 + Math.random() * 300));
-      setProgress(pct as number);
-      setProgressMsg(msg as string);
+      setProgress(pct);
+      setProgressMsg(msg);
     }
 
-    // Generate mock report (swap for real API call when ANTHROPIC_API_KEY is set)
     const generatedReport = generateMockReport({
       simId,
       twinId: currentTwinId,
@@ -149,13 +200,11 @@ export default function Studio() {
     setProgressMsg('Complete');
     setRunning(false);
     setReport(generatedReport);
-
-    // Update store
     updateSimulation(simId, { status: 'complete', report: generatedReport, overallRisk: generatedReport.overallRisk });
     updateTwin(currentTwinId, {
       simulationCount: (twins.find((t) => t.id === currentTwinId)?.simulationCount ?? 0) + 1,
     });
-  }, [selectedScenario, model, savedTwinId, twinName, params, healthScore, addTwin, addSimulation, updateSimulation, updateTwin, twins]);
+  }, [selectedScenario, model, savedTwinId, twinName, params, healthScore, apiStatus, addTwin, addSimulation, updateSimulation, updateTwin, twins]);
 
   if (!model) return null;
 

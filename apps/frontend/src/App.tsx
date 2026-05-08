@@ -5,6 +5,7 @@ import Library from '@/pages/Library';
 import Studio from '@/pages/Studio';
 import Dashboard from '@/pages/Dashboard';
 import SimulationReport from '@/pages/SimulationReport';
+import About from '@/pages/About';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -18,6 +19,7 @@ function AnimatedRoutes() {
           <Route path="studio/twin/:twinId" element={<Studio />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="simulation/:simulationId" element={<SimulationReport />} />
+          <Route path="about" element={<About />} />
         </Route>
       </Routes>
     </AnimatePresence>
